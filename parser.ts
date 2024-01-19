@@ -1,5 +1,6 @@
 import fs from 'fs'
 import * as cheerio from 'cheerio'
+import { DB_FRONT_PATH } from './config';
 
 type Game = {
   title: string;
@@ -71,6 +72,7 @@ const main = async () => {
     currentUrl = nextUrl;
   }
   fs.writeFileSync('db/'+(new Date().toJSON().slice(0,10))+'.json', JSON.stringify({ games: db, date: new Date().toJSON() }))
+  fs.writeFileSync(DB_FRONT_PATH, JSON.stringify({ games: db, date: new Date().toJSON() }))
   console.log('done!')
 }
 

@@ -9,6 +9,8 @@ lerna-debug.log*
 
 node_modules
 db
+tmp
+config.ts
 package-lock.json
 dist
 dist-ssr
