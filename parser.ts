@@ -7,17 +7,12 @@ type Game = {
   link: string;
 }
 
-const url = 'https://videoigr.net/catalog/nintendo-switch-142/igri-144/page-1/';
-const fileName = 'example.html';
+const videoigr_new_url = 'https://videoigr.net/catalog/nintendo-switch-142/igri-144/page-1/';
+const videoigr_used_url = 'https://videoigr.net/catalog/nintendo-switch-142/igri-bu-146/';
 
 const fetchUrl = async (nextUrl: string) => {
   const response = await fetch(nextUrl);
   return response.text();
-}
-
-const readFile = () => {
-  const res = fs.readFileSync(fileName)
-  return res.toString();
 }
 
 const sanitize = (str: string) => str
@@ -25,7 +20,7 @@ const sanitize = (str: string) => str
   .replace(/[ ]+/gim, ' ')
   .trim()
 
-const parsePage = async (currentUrl: string) => {
+const parsePage = async (currentUrl: string, condition: string) => {
   const html = await fetchUrl(currentUrl);
   const $ = cheerio.load(html)
   let games: any[] = [];
@@ -46,31 +41,32 @@ const parsePage = async (currentUrl: string) => {
     const price = +$root.find('span.price').text();
     const bonus = +($root.find('span.price + div').text() || '').replace(/[^\d]+/gim, '');
     const status = sanitize($root.find('td[style="text-align:center;"] > div.f-cg-b.fs-3-scalable').text());
-    const game = { id, title, link, img, publisherUrl, publisherTitle, ageRating, isRusSubtitles, isRusVoice, genres, status, price, bonus }
+    const game = { id, title, link, img, publisherUrl, publisherTitle, ageRating, isRusSubtitles, isRusVoice, genres, status, price, bonus, condition }
     games = games.concat(game);
   })
   
   return { games, nextUrl }
 }
 
-const append = (filename: string, games: any[]) => {
-  if (fs.existsSync(filename)) {
-    console.log(fs.readFileSync(filename).toString())
-  }
-  const db = fs.existsSync(filename) ? JSON.parse(fs.readFileSync(filename).toString()) : {games: []};
-  console.log(db)
-  fs.appendFileSync(filename, JSON.stringify({...db, games: db.games.concat(games) }))
-}
-
 const main = async () => {
-  let currentUrl: string | undefined = url;
   let db: any[] = [];
+
+  let currentUrl: string | undefined = videoigr_new_url;
   while (currentUrl) {
-    const { games, nextUrl } = await parsePage(currentUrl);
+    const { games, nextUrl } = await parsePage(currentUrl, 'new');
     db = db.concat(games);
     console.log(currentUrl, games.length)
     currentUrl = nextUrl;
   }
+
+  currentUrl = videoigr_used_url;
+  while (currentUrl) {
+    const { games, nextUrl } = await parsePage(currentUrl, 'used');
+    db = db.concat(games);
+    console.log(currentUrl, games.length)
+    currentUrl = nextUrl;
+  }
+
   fs.writeFileSync('db/'+(new Date().toJSON().slice(0,10))+'.json', JSON.stringify({ games: db, date: new Date().toJSON() }))
   fs.writeFileSync(DB_FRONT_PATH, JSON.stringify({ games: db, date: new Date().toJSON() }))
   console.log('done!')
